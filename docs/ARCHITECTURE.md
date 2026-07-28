@@ -81,46 +81,76 @@ taskio/
 │   └── index.php               # Application entry point
 │
 ├── src/                        # Application source code
-│   ├── Controller/             # HTTP controllers
+│   ├── Command/                # CLI commands
+│   │   └── AccountResetPasswordCommand.php
+│   │
+│   ├── Controller/             # HTTP controllers (thin — no EntityManager)
 │   │   ├── Admin/              # Admin-specific controllers
-│   │   │   └── AdminController.php
+│   │   │   ├── AccountController.php
+│   │   │   └── BoardController.php
+│   │   ├── AccountController.php
 │   │   ├── BoardController.php
 │   │   ├── CardController.php
 │   │   ├── LaneController.php
-│   │   └── SecurityController.php
+│   │   ├── RegistrationController.php
+│   │   ├── SecurityController.php
+│   │   └── ...
+│   │
+│   ├── Dto/                    # Input DTOs (form mapping + validation)
+│   │   ├── Account/            # ProfileInput, RegistrationInput, ...
+│   │   ├── Board/              # BoardInput, InvitationInput
+│   │   ├── Card/               # CardInput, CardMoveInput
+│   │   └── Lane/               # LaneInput
 │   │
 │   ├── Entity/                 # Doctrine entities
+│   │   ├── Account.php         # The user entity (implements UserInterface)
 │   │   ├── Board.php
+│   │   ├── BoardInvitation.php
 │   │   ├── Card.php
 │   │   ├── Lane.php
-│   │   └── User.php
+│   │   └── ResetPasswordRequest.php
 │   │
-│   ├── Form/                   # Form types
+│   ├── EntityListener/
+│   │   └── BoardOwnerListener.php
+│   │
+│   ├── Enum/
+│   │   └── CardStatus.php
+│   │
+│   ├── Form/                   # Form types (data_class = DTO, never an entity)
 │   │   ├── BoardType.php
 │   │   ├── CardType.php
-│   │   └── RegistrationType.php
+│   │   ├── LaneType.php
+│   │   ├── RegistrationFormType.php
+│   │   └── ...
 │   │
-│   ├── Repository/             # Data repositories
+│   ├── Repository/             # Data access + save()/remove() write entry points
+│   │   ├── AccountRepository.php
+│   │   ├── BoardInvitationRepository.php
 │   │   ├── BoardRepository.php
 │   │   ├── CardRepository.php
-│   │   ├── LaneRepository.php
-│   │   └── UserRepository.php
+│   │   └── LaneRepository.php
 │   │
 │   ├── Security/               # Security components
+│   │   ├── EmailVerifier.php
+│   │   ├── UserChecker.php
 │   │   └── Voter/
 │   │       └── BoardVoter.php
 │   │
-│   ├── Service/                # Business logic services
-│   │   └── BoardInvitationService.php
-│   │
-│   ├── DataFixtures/           # Database fixtures
-│   │   └── AppFixtures.php
+│   ├── Service/                # Business logic (one folder per domain)
+│   │   ├── Account/            # AccountService, RegistrationService
+│   │   ├── Board/              # BoardService, BoardInvitationService, CardMover
+│   │   ├── Card/               # CardService
+│   │   ├── Lane/               # LaneService
+│   │   └── ContactMailer.php
 │   │
 │   ├── Factory/                # Foundry factories
+│   │   ├── AccountFactory.php
 │   │   ├── BoardFactory.php
-│   │   ├── UserFactory.php
-│   │   └── ...
+│   │   ├── CardFactory.php
+│   │   └── LaneFactory.php
 │   │
+│   ├── Story/                  # Foundry stories (fixture scenarios)
+│   ├── Twig/Components/        # Twig components (Card, Lane, Hero)
 │   └── Kernel.php              # Application kernel
 │
 ├── templates/                  # Twig templates
@@ -131,12 +161,11 @@ taskio/
 │   └── base.html.twig          # Base layout
 │
 ├── tests/                      # Test suite
-│   ├── Unit/                   # Unit tests
-│   │   ├── Security/
-│   │   │   └── Voter/
-│   │   └── Service/
-│   └── Functional/             # Functional tests
-│       └── Controller/
+│   ├── Unit/                   # Unit tests (Dto, Entity, Form, Security, Service, ...)
+│   ├── Integration/            # Integration tests (reserved)
+│   ├── Functional/             # Functional HTTP tests
+│   │   └── Controller/
+│   └── fixtures/vite/          # Stub Vite manifest used during tests
 │
 ├── var/                        # Generated files
 │   ├── cache/                  # Application cache
@@ -150,7 +179,7 @@ taskio/
 ├── composer.json               # PHP dependencies
 ├── Dockerfile                  # Production Docker image
 ├── package.json                # Node.js dependencies
-├── phpunit.xml                 # PHPUnit configuration
+├── phpunit.dist.xml            # PHPUnit configuration
 ├── symfony.lock                # Symfony Flex lock file
 ├── tailwind.config.js          # Tailwind configuration
 └── vite.config.js              # Vite configuration
@@ -183,7 +212,7 @@ Rules enforced across `src/`:
    guards (`UniqueEntity`, column constraints) as defense in depth.
 
 > **Note on naming:** the user entity is `App\Entity\Account` (it implements
-> `UserInterface`). Some legacy diagrams below still say "User" — read it as `Account`.
+> `UserInterface`).
 
 Example for the Board domain:
 
@@ -223,17 +252,39 @@ The AJAX `card_move` endpoint receives its DTO straight from the JSON body via
 // src/Repository/BoardRepository.php
 class BoardRepository extends ServiceEntityRepository
 {
-    public function findByOwnerOrCollaborator(User $user): array
+    /**
+     * Persist a board. Single entry point for board writes.
+     */
+    public function save(Board $board, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->persist($board);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Find boards visible to the given user (either owner or member).
+     * @return Board[]
+     */
+    public function findVisibleForUser(Account $user): array
     {
         return $this->createQueryBuilder('b')
-            ->leftJoin('b.collaborators', 'c')
-            ->where('b.owner = :user OR c.id = :user')
+            ->leftJoin('b.accounts', 'a')
+            ->andWhere('b.owner = :user OR a = :user')
             ->setParameter('user', $user)
+            ->distinct()
+            ->orderBy('b.id', 'ASC')
             ->getQuery()
             ->getResult();
     }
 }
 ```
+
+Repositories expose read queries freely (controllers may call them for display),
+but `save()` / `remove()` are only ever called from the Service layer.
 
 **Benefits**:
 - Clean separation of concerns
@@ -247,34 +298,47 @@ class BoardRepository extends ServiceEntityRepository
 **Implementation**:
 ```php
 // src/Security/Voter/BoardVoter.php
-class BoardVoter extends Voter
+final class BoardVoter extends Voter
 {
-    protected function supports(string $attribute, $subject): bool
+    public const VIEW   = 'BOARD_VIEW';
+    public const EDIT   = 'BOARD_EDIT';
+    public const DELETE = 'BOARD_DELETE';
+    public const MANAGE_COLLABORATORS = 'BOARD_MANAGE_COLLABORATORS';
+
+    public function __construct(private readonly BoardRepository $boardRepository) {}
+
+    protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, ['view', 'edit', 'delete'])
+        return in_array($attribute, [self::VIEW, self::EDIT, self::DELETE, self::MANAGE_COLLABORATORS], true)
             && $subject instanceof Board;
     }
 
-    protected function voteOnAttribute(string $attribute, $subject, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, mixed $board, TokenInterface $token): bool
     {
         $user = $token->getUser();
+        if (!$user instanceof Account) {
+            return false;
+        }
 
-        // Admins can do everything
-        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+        // Admin can do anything
+        if (in_array('ROLE_ADMIN', $token->getRoleNames(), true)) {
             return true;
         }
 
-        // Owner can do everything
-        if ($subject->getOwner() === $user) {
+        // Owner can do anything on his board
+        if ($board->getOwner()?->getId() === $user->getId()) {
             return true;
         }
 
-        // Collaborators can view and edit, but not delete
-        if ($subject->getCollaborators()->contains($user)) {
-            return $attribute !== 'delete';
-        }
+        // Check if the user is a member of the board
+        $isMember = $this->boardRepository->isBoardMember($board, $user);
 
-        return false;
+        return match ($attribute) {
+            self::VIEW   => $isMember,
+            self::EDIT   => $isMember,
+            self::DELETE => false,
+            self::MANAGE_COLLABORATORS => false, // Only owner and admins
+        };
     }
 }
 ```
@@ -290,30 +354,33 @@ class BoardVoter extends Voter
 
 **Implementation**:
 ```php
-// src/Service/BoardInvitationService.php
-class BoardInvitationService
+// src/Service/Board/BoardInvitationService.php
+final class BoardInvitationService
 {
     public function __construct(
-        private MailerInterface $mailer,
-        private UserRepository $userRepository
+        private readonly AccountRepository $accountRepository,
+        private readonly BoardInvitationRepository $invitationRepository,
+        private readonly MailerInterface $mailer,
+        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly LoggerInterface $logger
     ) {}
 
-    public function sendInvitation(Board $board, string $email): void
+    public function acceptInvitation(BoardInvitation $invitation, Account $user): void
     {
-        $user = $this->userRepository->findOneBy(['email' => $email]);
+        $board = $invitation->getBoard();
 
-        if (!$user) {
-            throw new UserNotFoundException();
+        if (!$this->isUserAlreadyMember($user, $board)) {
+            $board->addAccount($user);
         }
 
-        // Add collaborator
-        $board->addCollaborator($user);
-
-        // Send email
-        $this->sendInvitationEmail($board, $user);
+        $invitation->setIsAccepted(true);
+        $this->invitationRepository->save($invitation);
     }
 }
 ```
+
+Note how the mutation is persisted through the repository's `save()` method —
+the service never touches the `EntityManager` directly.
 
 **Benefits**:
 - Business logic separate from controllers
@@ -333,15 +400,21 @@ class BoardType extends AbstractType
     {
         $builder
             ->add('title', TextType::class, [
-                'label' => 'Board Title',
+                'required' => true,
+                // Map an empty submission to '' (not null) so the non-nullable
+                // DTO property is satisfied and NotBlank reports it cleanly.
+                'empty_data' => '',
+                'label' => 'Board title',
                 'attr' => ['class' => 'input input-bordered'],
             ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
+        // The form maps to the DTO, not to the Doctrine entity.
+        // Validation lives on BoardInput's constraints.
         $resolver->setDefaults([
-            'data_class' => Board::class,
+            'data_class' => BoardInput::class,
         ]);
     }
 }
@@ -350,47 +423,57 @@ class BoardType extends AbstractType
 **Benefits**:
 - Reusable form definitions
 - Type-safe form handling
-- Centralized validation rules
+- Validation rules centralized on the DTO (`App\Dto\Board\BoardInput`)
 
 ## Database Schema
 
 ### Entity Relationships
 
 ```
-User
-  ├── owns many Boards (one-to-many)
-  └── collaborates on many Boards (many-to-many)
+Account
+  ├── owns many Boards (one-to-many, Board.owner)
+  └── is a member of many Boards (many-to-many, Account.boards / Board.accounts)
 
 Board
-  ├── owned by one User (many-to-one)
-  ├── has many Collaborators (many-to-many with User)
-  └── has many Lanes (one-to-many)
+  ├── owned by one Account (many-to-one, non-null)
+  ├── has many member Accounts (many-to-many)
+  └── has many Lanes (one-to-many, ordered by position, orphan removal)
+
+BoardInvitation
+  ├── belongs to one Board (many-to-one, cascade delete)
+  └── invited by one Account (many-to-one)
 
 Lane
-  ├── belongs to one Board (many-to-one)
-  └── has many Cards (one-to-many)
+  ├── belongs to one Board (many-to-one, cascade delete)
+  └── has many Cards (one-to-many, ordered by position)
 
 Card
-  ├── belongs to one Lane (many-to-one)
-  └── has status (enum: Todo, In Progress, Done)
+  ├── belongs to one Lane (many-to-one, cascade delete)
+  └── has status (enum CardStatus, nullable)
 ```
 
 ### Key Entities
 
-**User Entity:**
+**Account Entity** (the user, implements `UserInterface`):
 - `id` (primary key)
 - `email` (unique)
 - `password` (hashed)
-- `name`
-- `roles` (JSON array)
-- Relationships: ownedBoards, collaboratedBoards
+- `name`, `lastname`
+- `role` (string, e.g. `ROLE_USER` / `ROLE_ADMIN`)
+- `isVerified` (bool)
+- Relationships: ownedBoards, boards (memberships)
 
 **Board Entity:**
 - `id` (primary key)
 - `title`
-- `owner` (User foreign key)
-- `createdAt`, `updatedAt`
-- Relationships: owner, collaborators, lanes
+- `owner` (Account foreign key, non-null)
+- Relationships: owner, accounts (members), lanes
+
+**BoardInvitation Entity:**
+- `id` (primary key)
+- `email`, `token` (unique)
+- `createdAt`, `expiresAt`, `isAccepted`, `acceptedAt`
+- Relationships: board, invitedBy (Account)
 
 **Lane Entity:**
 - `id` (primary key)
@@ -403,7 +486,7 @@ Card
 - `id` (primary key)
 - `title`
 - `description`
-- `status` (enum)
+- `status` (enum `CardStatus`, nullable)
 - `position` (integer for ordering)
 - `lane` (Lane foreign key)
 - Relationships: lane
@@ -496,31 +579,46 @@ export default class extends Controller {
 
 ### RESTful Principles
 
-Taskio follows RESTful conventions for resource management:
+Taskio follows resource-oriented conventions (HTML forms only support GET/POST,
+so mutations are POST routes):
 
-| HTTP Method | Route | Action | Description |
-|------------|-------|--------|-------------|
-| GET | `/board` | index | List all boards |
-| GET | `/board/new` | new | Show creation form |
-| POST | `/board` | create | Create new board |
-| GET | `/board/{id}` | show | Display board |
-| GET | `/board/{id}/edit` | edit | Show edit form |
-| PUT/PATCH | `/board/{id}` | update | Update board |
-| DELETE | `/board/{id}` | delete | Delete board |
+| HTTP Method | Route | Name | Description |
+|------------|-------|------|-------------|
+| GET | `/board` | app_board_index | List the user's boards |
+| GET/POST | `/board/new` | app_board_new | Create a new board |
+| GET/POST | `/board/{id}/edit` | app_board_edit | Edit a board |
+| POST | `/board/{id}` | app_board_delete | Delete a board (CSRF-protected) |
+| POST | `/board/{id}/collaborator/invite` | app_board_invite_collaborator | Invite a collaborator |
+| POST | `/board/{id}/collaborator/{userId}/remove` | app_board_remove_collaborator | Remove a collaborator |
+| GET | `/board/invitation/{token}/accept` | app_board_accept_invitation | Accept an invitation |
+| POST | `/card/cards/move` | card_move | Move a card (AJAX, JSON payload) |
 
 ### AJAX Endpoints
 
-For dynamic interactions (drag & drop, etc.):
+For dynamic interactions (drag & drop, etc.) the JSON payload is mapped to a
+DTO with `#[MapRequestPayload]`, then the controller delegates to the service —
+same layered flow as regular forms:
 
 ```php
-#[Route('/card/{id}/position', methods: ['PATCH'])]
-public function updatePosition(Card $card, Request $request): JsonResponse
-{
-    $data = json_decode($request->getContent(), true);
-    $card->setPosition($data['position']);
-    $this->entityManager->flush();
+// src/Controller/CardController.php
+#[Route('/cards/move', name: 'card_move', methods: ['POST'])]
+public function move(
+    #[MapRequestPayload] CardMoveInput $input,
+    CardRepository $cardRepo,
+    LaneRepository $laneRepo,
+    CardService $cardService
+): JsonResponse {
+    $card = $cardRepo->find($input->cardId);
+    $lane = $laneRepo->find($input->toLaneId);
 
-    return new JsonResponse(['success' => true]);
+    if (!$card || !$lane) {
+        return $this->json(['error' => 'not found'], 404);
+    }
+
+    $this->denyAccessUnlessGranted('BOARD_EDIT', $lane->getBoard());
+    $cardService->move($card, $lane, $input->newIndex);
+
+    return $this->json(['ok' => true]);
 }
 ```
 
@@ -536,12 +634,14 @@ public function updatePosition(Card $card, Request $request): JsonResponse
 ### Adding New Features
 
 1. **Create Entity**: Define the data model
-2. **Create Repository**: Add custom queries if needed
-3. **Create Controller**: Handle HTTP requests
-4. **Create Form Type**: Define form structure
-5. **Create Templates**: Build the UI
-6. **Add Routes**: Register URL patterns
-7. **Write Tests**: Ensure functionality works
+2. **Create Repository**: Add `save()`/`remove()` and custom queries
+3. **Create DTO**: Define the input shape and its validation constraints
+4. **Create Service**: Orchestrate the mutation through the repository
+5. **Create Form Type**: Map the form to the DTO (`data_class`)
+6. **Create Controller**: Thin — form handling + service call, no EntityManager
+7. **Create Templates**: Build the UI
+8. **Add Routes**: Register URL patterns
+9. **Write Tests**: Unit (DTO, Form, Service) + functional (HTTP)
 
 ### Configuration
 

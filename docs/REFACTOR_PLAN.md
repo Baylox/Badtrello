@@ -215,7 +215,7 @@ Tous les domaines sont migrés vers la chaîne `Controller → DTO → Service �
 | Account (admin) | `Account\AdminAccountInput` | `Service\Account\AccountService` | `AccountRepository` |
 | Registration | `Account\RegistrationInput` | `Service\Account\RegistrationService` | `AccountRepository` |
 | Reset password | `Account\PasswordResetRequestInput`, `Account\NewPasswordInput` | `Service\Account\AccountService` | `AccountRepository` |
-| Invitation / collab. | `Board\InvitationInput` | `Service\BoardInvitationService` | `BoardInvitationRepository`, `AccountRepository` |
+| Invitation / collab. | `Board\InvitationInput` | `Service\Board\BoardInvitationService` | `BoardInvitationRepository`, `AccountRepository` |
 | Contact | `ContactData` | `Service\ContactMailer` | n/a (mail) |
 
 Le endpoint AJAX `card_move` reçoit son DTO via `#[MapRequestPayload] CardMoveInput`.
