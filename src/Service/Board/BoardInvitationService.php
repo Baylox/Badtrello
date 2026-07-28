@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\Board;
 
 use App\Entity\Board;
 use App\Entity\Account;
@@ -12,7 +12,7 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
 
-class BoardInvitationService
+final class BoardInvitationService
 {
     public function __construct(
         private readonly AccountRepository $accountRepository,
