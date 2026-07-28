@@ -76,7 +76,7 @@ composer install
 php bin/console doctrine:migrations:migrate --no-interaction
 
 # Load sample data (optional)
-php bin/console doctrine:fixtures:load --no-interaction
+php bin/console foundry:load-fixtures main
 ```
 
 ### 5. Access the Application
@@ -88,8 +88,8 @@ php bin/console doctrine:fixtures:load --no-interaction
 
 If fixtures were loaded, you can use these credentials:
 
-- **Admin**: `admin@example.com` / `password`
-- **User**: `user@example.com` / `password`
+- **Admin**: `admin@example.com` / `adminpassword`
+- **User**: `user@example.com` / `userpassword`
 
 ## Installation with Symfony CLI
 
@@ -134,7 +134,7 @@ php bin/console doctrine:database:create
 php bin/console doctrine:migrations:migrate
 
 # Load sample data (optional)
-php bin/console doctrine:fixtures:load
+php bin/console foundry:load-fixtures main
 ```
 
 ### 6. Start the Development Servers
