@@ -53,8 +53,9 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:-!ChangeMe!}
 
     # Healthcheck: waits for MariaDB to respond
+    # (mariadb-admin: the mysql* compat binaries were removed from mariadb:11+ images)
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MARIADB_USER:-app}", "-p${MARIADB_PASSWORD:-!ChangeMe!}"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u${MARIADB_USER:-app}", "-p${MARIADB_PASSWORD:-!ChangeMe!}"]
       timeout: 5s
       retries: 5
       start_period: 30s
