@@ -1,5 +1,6 @@
 # Taskio - Collaborative Board Management System
 
+[![CI](https://github.com/Baylox/taskio/actions/workflows/ci.yml/badge.svg)](https://github.com/Baylox/taskio/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![Symfony](https://img.shields.io/badge/Symfony-7.3-000000?logo=symfony&logoColor=white)](https://symfony.com/)
 [![MariaDB](https://img.shields.io/badge/MariaDB-11.4-003545?logo=mariadb&logoColor=white)](https://mariadb.org/)
