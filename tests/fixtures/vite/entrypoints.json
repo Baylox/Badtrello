@@ -1,0 +1,8 @@
+{
+    "base": "/build/",
+    "entryPoints": {},
+    "legacy": false,
+    "metadatas": {},
+    "version": ["8.2.1", 8, 2, 1],
+    "viteServer": null
+}

@@ -2,18 +2,11 @@
 
 namespace App\Form;
 
-use App\Entity\Account;
-use App\Entity\Board;
-use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+use App\Dto\Board\BoardInput;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Validator\Constraints\NotBlank;
-
 
 class BoardType extends AbstractType
 {
@@ -22,6 +15,9 @@ class BoardType extends AbstractType
         $builder
             ->add('title', TextType::class, [
                 'required' => true,
+                // Map an empty submission to '' (not null) so the non-nullable
+                // DTO property is satisfied and NotBlank reports it cleanly.
+                'empty_data' => '',
                 'label'    => 'Board title',
                 'attr'     => [
                     'placeholder' => 'Enter a title',
@@ -30,25 +26,15 @@ class BoardType extends AbstractType
                 'label_attr' => [
                     'class' => 'label-text text-base-content font-medium'
                 ],
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'The title field cannot be empty.'
-                    ])
-                ]
             ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
+        // The form maps to the DTO, not to the Doctrine entity.
+        // Validation lives on BoardInput's constraints.
         $resolver->setDefaults([
-            'data_class' => Board::class,
+            'data_class' => BoardInput::class,
         ]);
     }
 }
-            // ajout message erreur si pas de titre
-            // Voir si il faut modifier le "add" de accounts car cela peut créer un nouv account ? (et non le lier a un existant)
-            /*->add('accounts', EntityType::class, [
-                'class' => Account::class,
-                'choice_label' => 'id',
-                'multiple' => true,
-            ])*/

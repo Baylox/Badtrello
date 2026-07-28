@@ -2,17 +2,22 @@
 
 namespace App\Controller;
 
+use App\Dto\Card\CardInput;
+use App\Dto\Card\CardMoveInput;
+use App\Dto\Lane\LaneInput;
 use App\Entity\Card;
 use App\Entity\Lane;
 use App\Form\CardType;
 use App\Form\LaneType;
 use App\Repository\CardRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\LaneRepository;
+use App\Service\Card\CardService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -24,25 +29,16 @@ final class CardController extends AbstractController
     public function createForLane(
         #[MapEntity(mapping: ['laneId' => 'id'])] Lane $lane,
         Request $request,
-        EntityManagerInterface $em,
-        CardRepository $cardRepo
+        CardService $cardService
     ): Response {
-
         $this->denyAccessUnlessGranted('BOARD_EDIT', $lane->getBoard());
 
-        $card = new Card();
-        $card->setLane($lane);
-
-        // Position at the bottom of the lane (robust if lane is empty)
-        $maxPosition = $cardRepo->findMaxPositionInLane($lane);
-        $card->setPosition(($maxPosition ?? 0) + 1);
-
-        $form = $this->createForm(CardType::class, $card);
+        $input = new CardInput();
+        $form = $this->createForm(CardType::class, $input);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->persist($card);
-            $em->flush();
+            $cardService->createForLane($input, $lane);
 
             return $this->redirectToRoute(
                 'app_board_dashboard',
@@ -50,40 +46,41 @@ final class CardController extends AbstractController
                 Response::HTTP_SEE_OTHER
             );
         }
+
         // Invalid case: return only the strict minimum
         return $this->render('dashboard/index.html.twig', [
             'board' => $lane->getBoard(),
-            'laneForm' => $this->createForm(LaneType::class, new Lane())->createView(),
-            'cardFormForLane' => [$lane->getId() => $form->createView()],
-            'openCardModalLaneId' => $lane->getId(),
+            'laneForm' => $this->createForm(LaneType::class, new LaneInput())->createView(),
+            'cardForms' => [$lane->getId() => $form->createView()],
+            'openCardModalId' => $lane->getId(),
         ]);
     }
 
     #[Route('/{id}', name: 'app_card_delete', methods: ['POST'])]
-    public function delete(Request $request, Card $card, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Card $card, CardService $cardService): Response
     {
         $board = $card->getLane()->getBoard();
 
         if ($this->isCsrfTokenValid('delete' . $card->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($card);
-            $entityManager->flush();
+            $cardService->delete($card);
         }
 
         return $this->redirectToRoute('app_board_dashboard', ['id' => $board->getId()], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/cards/{id}/edit', name: 'card_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Card $card, EntityManagerInterface $em): Response
+    public function edit(Request $request, Card $card, CardService $cardService): Response
     {
         $lane = $card->getLane();
         $board = $lane->getBoard();
         $this->denyAccessUnlessGranted('BOARD_EDIT', $board);
 
-        $form = $this->createForm(CardType::class, $card);
+        $input = CardInput::fromEntity($card);
+        $form = $this->createForm(CardType::class, $input);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
+            $cardService->update($card, $input);
             return $this->redirectToRoute('app_board_dashboard', ['id' => $board->getId()]);
         }
 
@@ -93,13 +90,13 @@ final class CardController extends AbstractController
             foreach ($boardLane->getCards() as $boardCard) {
                 $cardEditForms[$boardCard->getId()] = $boardCard->getId() === $card->getId()
                     ? $form->createView() // keep errors
-                    : $this->createForm(CardType::class, $boardCard)->createView();
+                    : $this->createForm(CardType::class, CardInput::fromEntity($boardCard))->createView();
             }
         }
 
         return $this->render('dashboard/index.html.twig', [
             'board'           => $board,
-            'laneForm'        => $this->createForm(LaneType::class)->createView(),
+            'laneForm'        => $this->createForm(LaneType::class, new LaneInput())->createView(),
             'laneEditForms'   => $this->buildLaneEditForms($board),
             'cardEditForms'   => $cardEditForms,
             'openEditCardId'  => $card->getId(),
@@ -111,27 +108,27 @@ final class CardController extends AbstractController
     {
         $forms = [];
         foreach ($board->getLanes() as $lane) {
-            $forms[$lane->getId()] = $this->createForm(LaneType::class, $lane)->createView();
+            $forms[$lane->getId()] = $this->createForm(LaneType::class, LaneInput::fromEntity($lane))->createView();
         }
         return $forms;
     }
 
     #[Route('/cards/move', name: 'card_move', methods: ['POST'])]
     public function move(
-        Request $req,
-        EntityManagerInterface $em,
-        \App\Service\Board\CardMover $mover
+        #[MapRequestPayload] CardMoveInput $input,
+        CardRepository $cardRepo,
+        LaneRepository $laneRepo,
+        CardService $cardService
     ): JsonResponse {
-        $p = json_decode($req->getContent(), true) ?? [];
-        $card = $em->getRepository(Card::class)->find((int)($p['cardId'] ?? 0));
-        $lane = $em->getRepository(Lane::class)->find((int)($p['toLaneId'] ?? 0));
-        $new  = (int)($p['newIndex'] ?? 0);
+        $card = $cardRepo->find($input->cardId);
+        $lane = $laneRepo->find($input->toLaneId);
 
-        if (!$card || !$lane) return $this->json(['error' => 'not found'], 404);
+        if (!$card || !$lane) {
+            return $this->json(['error' => 'not found'], 404);
+        }
 
         $this->denyAccessUnlessGranted('BOARD_EDIT', $lane->getBoard());
-        $mover->move($card, $lane, $new);
-        $em->flush();
+        $cardService->move($card, $lane, $input->newIndex);
 
         return $this->json(['ok' => true]);
     }

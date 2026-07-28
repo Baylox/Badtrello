@@ -2,11 +2,11 @@
 
 namespace App\Form;
 
+use App\Dto\Account\PasswordResetRequestInput;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Validator\Constraints\NotBlank;
 
 class ResetPasswordRequestFormType extends AbstractType
 {
@@ -14,18 +14,17 @@ class ResetPasswordRequestFormType extends AbstractType
     {
         $builder
             ->add('email', EmailType::class, [
+                'empty_data' => '',
                 'attr' => ['autocomplete' => 'email'],
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Please enter your email',
-                    ]),
-                ],
             ])
         ;
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults([]);
+        // The form maps to the DTO; validation lives on PasswordResetRequestInput.
+        $resolver->setDefaults([
+            'data_class' => PasswordResetRequestInput::class,
+        ]);
     }
 }

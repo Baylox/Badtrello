@@ -18,6 +18,32 @@ class CardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Persist a card. Single entry point for card writes.
+     */
+    public function save(Card $card, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->persist($card);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Remove a card.
+     */
+    public function remove(Card $card, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->remove($card);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
      * Finds the maximum position value of cards in the given lane.
      * Returns 0 if there are no cards in the lane.
      * @param Lane $lane

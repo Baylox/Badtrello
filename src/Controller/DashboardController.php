@@ -2,9 +2,8 @@
 
 namespace App\Controller;
 
-use App\Entity\Board;
-use App\Entity\Card;
-use App\Entity\Lane;
+use App\Dto\Card\CardInput;
+use App\Dto\Lane\LaneInput;
 use App\Form\CardType;
 use App\Form\LaneType;
 use App\Repository\BoardRepository;
@@ -26,28 +25,26 @@ final class DashboardController extends AbstractController
 
         $this->denyAccessUnlessGranted('BOARD_VIEW', $board);
 
-        // Create the form for lanes
-        $laneForm = $this->createForm(LaneType::class, new Lane());
+        // Create the form for new lanes (mapped on the DTO)
+        $laneForm = $this->createForm(LaneType::class, new LaneInput());
 
-        // Create the forms for cards (one per lane)
+        // Create the forms for creating cards (one per lane)
         $cardForms = [];
         foreach ($board->getLanes() as $lane) {
-            $card = new Card();
-            $card->setLane($lane); // Pre-assign the lane
-            $cardForms[$lane->getId()] = $this->createForm(CardType::class, $card);
+            $cardForms[$lane->getId()] = $this->createForm(CardType::class, new CardInput());
         }
 
         // Create the forms for editing lanes
         $laneEditForms = [];
         foreach ($board->getLanes() as $lane) {
-            $laneEditForms[$lane->getId()] = $this->createForm(LaneType::class, $lane)->createView();
+            $laneEditForms[$lane->getId()] = $this->createForm(LaneType::class, LaneInput::fromEntity($lane))->createView();
         }
 
         // Create the forms for editing cards
         $cardEditForms = [];
         foreach ($board->getLanes() as $lane) {
             foreach ($lane->getCards() as $card) {
-                $cardEditForms[$card->getId()] = $this->createForm(CardType::class, $card)->createView();
+                $cardEditForms[$card->getId()] = $this->createForm(CardType::class, CardInput::fromEntity($card))->createView();
             }
         }
 

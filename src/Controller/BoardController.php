@@ -2,15 +2,18 @@
 
 namespace App\Controller;
 
+use App\Dto\Board\BoardInput;
+use App\Dto\Board\InvitationInput;
 use App\Entity\Board;
 use App\Entity\Account;
 use App\Entity\BoardInvitation;
 use App\Form\BoardType;
 use App\Form\AddCollaboratorType;
+use App\Repository\AccountRepository;
 use App\Repository\BoardRepository;
 use App\Repository\BoardInvitationRepository;
-use App\Service\BoardInvitationService;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\Board\BoardService;
+use App\Service\Board\BoardInvitationService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -42,26 +45,23 @@ final class BoardController extends AbstractController
      * Create a new board and set the current user as owner
      *
      * @param Request $request
-     * @param EntityManagerInterface $entityManager
+     * @param BoardService $boardService
      * @return Response
      */
     #[Route('/new', name: 'app_board_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request, BoardService $boardService): Response
     {
-        $board = new Board();
-        $form = $this->createForm(BoardType::class, $board);
+        $input = new BoardInput();
+        $form = $this->createForm(BoardType::class, $input);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $board->setOwner($this->getUser());
-            $entityManager->persist($board);
-            $entityManager->flush();
+            $boardService->create($input, $this->getUser());
 
             return $this->redirectToRoute('app_board_index', [], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('board/new.html.twig', [
-            'board' => $board,
             'form' => $form,
         ]);
     }
@@ -72,19 +72,20 @@ final class BoardController extends AbstractController
      *
      * @param Request $request
      * @param Board $board
-     * @param EntityManagerInterface $entityManager
+     * @param BoardService $boardService
      * @param BoardInvitationRepository $invitationRepository
      * @return Response
      */
     #[IsGranted('BOARD_EDIT', subject: 'board')]
     #[Route('/{id}/edit', name: 'app_board_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Board $board, EntityManagerInterface $entityManager, BoardInvitationRepository $invitationRepository): Response
+    public function edit(Request $request, Board $board, BoardService $boardService, BoardInvitationRepository $invitationRepository): Response
     {
-        $form = $this->createForm(BoardType::class, $board);
+        $input = BoardInput::fromEntity($board);
+        $form = $this->createForm(BoardType::class, $input);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            $boardService->update($board, $input);
             return $this->redirectToRoute('app_board_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -102,16 +103,15 @@ final class BoardController extends AbstractController
      *
      * @param Request $request
      * @param Board $board
-     * @param EntityManagerInterface $entityManager
+     * @param BoardService $boardService
      * @return Response
      */
     #[IsGranted('BOARD_DELETE', subject: 'board')]
     #[Route('/{id}', name: 'app_board_delete', methods: ['POST'])]
-    public function delete(Request $request, Board $board, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Board $board, BoardService $boardService): Response
     {
         if ($this->isCsrfTokenValid('delete' . $board->getId(), $request->getPayload()->getString('_token'))) {
-            $entityManager->remove($board);
-            $entityManager->flush();
+            $boardService->delete($board);
         }
 
         return $this->redirectToRoute('app_board_index', [], Response::HTTP_SEE_OTHER);
@@ -137,12 +137,12 @@ final class BoardController extends AbstractController
             return $this->redirectToRoute('app_board_edit', ['id' => $board->getId()]);
         }
 
-        $form = $this->createForm(AddCollaboratorType::class, null, ['board' => $board]);
+        $input = new InvitationInput();
+        $form = $this->createForm(AddCollaboratorType::class, $input, ['board' => $board]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $email = $form->get('email')->getData();
-            $invitationService->processInvitation($email, $board, $this->getUser());
+            $invitationService->processInvitation($input->email, $board, $this->getUser());
             $this->addFlash('success', 'An invitation has been sent to this email address.');
         }
 
@@ -157,19 +157,20 @@ final class BoardController extends AbstractController
      * @param Request $request
      * @param Board $board
      * @param int $userId
-     * @param EntityManagerInterface $em
+     * @param AccountRepository $accountRepository
+     * @param BoardInvitationService $invitationService
      * @return Response
      */
     #[IsGranted('BOARD_MANAGE_COLLABORATORS', subject: 'board')]
     #[Route('/{id}/collaborator/{userId}/remove', name: 'app_board_remove_collaborator', methods: ['POST'])]
-    public function removeCollaborator(Request $request, Board $board, int $userId, EntityManagerInterface $em): Response
+    public function removeCollaborator(Request $request, Board $board, int $userId, AccountRepository $accountRepository, BoardInvitationService $invitationService): Response
     {
         if (!$this->isCsrfTokenValid('remove_collaborator' . $userId, $request->request->get('_token'))) {
             $this->addFlash('error', 'Invalid CSRF token.');
             return $this->redirectToRoute('app_board_edit', ['id' => $board->getId()]);
         }
 
-        $collaborator = $em->getRepository(Account::class)->find($userId);
+        $collaborator = $accountRepository->find($userId);
 
         // IDOR Protection: Verify user can be removed
         if (!$this->canRemoveCollaborator($board, $collaborator)) {
@@ -177,8 +178,7 @@ final class BoardController extends AbstractController
             return $this->redirectToRoute('app_board_edit', ['id' => $board->getId()]);
         }
 
-        $board->removeAccount($collaborator);
-        $em->flush();
+        $invitationService->removeCollaborator($board, $collaborator);
 
         $this->addFlash('success', 'Collaborator removed successfully.');
         return $this->redirectToRoute('app_board_edit', ['id' => $board->getId()]);
@@ -289,7 +289,7 @@ final class BoardController extends AbstractController
             return null;
         }
 
-        return $this->createForm(AddCollaboratorType::class, null, ['board' => $board])->createView();
+        return $this->createForm(AddCollaboratorType::class, new InvitationInput(), ['board' => $board])->createView();
     }
 
     /**

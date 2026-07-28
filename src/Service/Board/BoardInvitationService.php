@@ -1,22 +1,20 @@
 <?php
 
-namespace App\Service;
+namespace App\Service\Board;
 
 use App\Entity\Board;
 use App\Entity\Account;
 use App\Entity\BoardInvitation;
 use App\Repository\AccountRepository;
 use App\Repository\BoardInvitationRepository;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Psr\Log\LoggerInterface;
 
-class BoardInvitationService
+final class BoardInvitationService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
         private readonly AccountRepository $accountRepository,
         private readonly BoardInvitationRepository $invitationRepository,
         private readonly MailerInterface $mailer,
@@ -47,8 +45,7 @@ class BoardInvitationService
         $invitation->setEmail($email);
         $invitation->setInvitedBy($invitedBy);
 
-        $this->entityManager->persist($invitation);
-        $this->entityManager->flush();
+        $this->invitationRepository->save($invitation);
 
         $this->logger->info('Board invitation created', [
             'board_id' => $board->getId(),
@@ -103,7 +100,7 @@ class BoardInvitationService
         }
 
         $invitation->setIsAccepted(true);
-        $this->entityManager->flush();
+        $this->invitationRepository->save($invitation);
 
         $this->logger->info('Invitation accepted', [
             'invitation_id' => $invitation->getId(),
@@ -119,8 +116,22 @@ class BoardInvitationService
             'board_id' => $invitation->getBoard()->getId()
         ]);
 
-        $this->entityManager->remove($invitation);
-        $this->entityManager->flush();
+        $this->invitationRepository->remove($invitation);
+    }
+
+    /**
+     * Remove a collaborator from a board and persist the change.
+     */
+    public function removeCollaborator(Board $board, Account $collaborator): void
+    {
+        $board->removeAccount($collaborator);
+        // Account is the owning side of the relation; saving it flushes the change.
+        $this->accountRepository->save($collaborator);
+
+        $this->logger->info('Collaborator removed', [
+            'board_id' => $board->getId(),
+            'collaborator_id' => $collaborator->getId(),
+        ]);
     }
 
     public function cancelInvitationById(int $invitationId, Board $board): void

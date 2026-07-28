@@ -1,0 +1,8 @@
+# Test-only override: there is no compiled asset bundle during tests, so point
+# the Vite bundle to a stub entrypoints file. With throw_on_missing_entry = false
+# the asset Twig helpers then render nothing instead of throwing.
+pentatrion_vite:
+    public_directory: tests/fixtures
+    build_directory: vite
+    throw_on_missing_asset: false
+    throw_on_missing_entry: false

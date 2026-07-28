@@ -2,10 +2,11 @@
 
 namespace App\Controller\Admin;
 
+use App\Dto\Account\AdminAccountInput;
 use App\Entity\Account;
 use App\Form\AdminAccountType;
 use App\Repository\AccountRepository;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\Account\AccountService;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -49,13 +50,14 @@ final class AccountController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Account $account, EntityManagerInterface $entityManager): Response
+    public function edit(Request $request, Account $account, AccountService $accountService): Response
     {
-        $form = $this->createForm(AdminAccountType::class, $account);
+        $input = AdminAccountInput::fromEntity($account);
+        $form = $this->createForm(AdminAccountType::class, $input);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
+            $accountService->adminUpdate($account, $input);
             return $this->redirectToRoute('admin_account_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -66,11 +68,10 @@ final class AccountController extends AbstractController
     }
 
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
-    public function delete(Request $request, Account $account, EntityManagerInterface $em): Response
+    public function delete(Request $request, Account $account, AccountService $accountService): Response
     {
         if ($this->isCsrfTokenValid('delete'.$account->getId(), $request->request->get('_token'))) {
-            $em->remove($account);
-            $em->flush();
+            $accountService->delete($account);
             // Account deleted.
             $this->addFlash('success', 'Account deleted.');
         } else {

@@ -1,0 +1,7 @@
+# Test-only overrides.
+# Disable the NotCompromisedPassword check so the test suite never reaches out
+# to the external haveibeenpwned API (keeps tests fast, hermetic and offline).
+framework:
+    validation:
+        not_compromised_password:
+            enabled: false

@@ -19,6 +19,32 @@ class BoardInvitationRepository extends ServiceEntityRepository
     }
 
     /**
+     * Persist an invitation (and flush the current unit of work).
+     */
+    public function save(BoardInvitation $invitation, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->persist($invitation);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Remove an invitation.
+     */
+    public function remove(BoardInvitation $invitation, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->remove($invitation);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
      * Find a valid invitation by token
      * An invitation is valid if it exists, is not accepted yet and not expired
      * @param string $token

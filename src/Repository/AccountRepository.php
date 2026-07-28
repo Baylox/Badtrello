@@ -18,6 +18,40 @@ class AccountRepository extends ServiceEntityRepository
     }
 
     /**
+     * Persist an account. Single entry point for account writes.
+     */
+    public function save(Account $account, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->persist($account);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Remove an account.
+     */
+    public function remove(Account $account, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->remove($account);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Find a single account by its email.
+     */
+    public function findOneByEmail(string $email): ?Account
+    {
+        return $this->findOneBy(['email' => $email]);
+    }
+
+    /**
      * Autocomplete usernames emails starting
      *
      * @param string $userInput Partial username to match.

@@ -34,7 +34,7 @@ docker compose up -d --build
 docker compose exec app bash
 composer install
 php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console doctrine:fixtures:load --no-interaction
+php bin/console foundry:load-fixtures main
 
 # Access the application
 open http://localhost:8080

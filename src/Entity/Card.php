@@ -25,8 +25,6 @@ class Card
     #[ORM\Column]
     private ?int $id = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Length(max: 50)]
     #[ORM\Column(length: 50)]
     private ?string $title = null;
 

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
-         executionOrder="depends,defects,random"
+         executionOrder="depends,random"
          failOnRisky="true"
          failOnWarning="true">
 
@@ -20,7 +20,7 @@
         </testsuite>
     </testsuites>
 
-    <coverage>
+    <source>
         <include>
             <directory suffix=".php">src</directory>
         </include>
@@ -29,7 +29,7 @@
             <directory>tests</directory>
             <directory>var</directory>
         </exclude>
-    </coverage>
+    </source>
 
     <php>
         <env name="APP_ENV" value="test"/>

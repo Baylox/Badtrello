@@ -2,8 +2,7 @@
 
 namespace App\Form;
 
-use App\Entity\Board;
-use App\Entity\Account;
+use App\Dto\Account\AdminAccountInput;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -18,6 +17,7 @@ class AdminAccountType extends AbstractType
     {
         $builder
             ->add('email', EmailType::class, [
+                'empty_data' => '',
                 'attr' => [
                     'autocomplete' => 'email',
                     'inputmode' => 'email', // Mobile-friendly keyboard
@@ -25,11 +25,13 @@ class AdminAccountType extends AbstractType
             ])
             ->add('name', TextType::class, [
                 'required' => true,
+                'empty_data' => '',
                 'label'    => 'First name',
                 'attr'     => ['autocomplete' => 'given-name'],
             ])
             ->add('lastname', TextType::class, [
                 'required' => true,
+                'empty_data' => '',
                 'label'    => 'Last name',
                 'attr'     => ['autocomplete' => 'family-name'],
             ])
@@ -50,8 +52,9 @@ class AdminAccountType extends AbstractType
 
     public function configureOptions(OptionsResolver $resolver): void
     {
+        // The form maps to the DTO, not to the Doctrine entity.
         $resolver->setDefaults([
-            'data_class' => Account::class,
+            'data_class' => AdminAccountInput::class,
         ]);
     }
 }

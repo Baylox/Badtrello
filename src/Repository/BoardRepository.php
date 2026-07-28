@@ -19,6 +19,32 @@ class BoardRepository extends ServiceEntityRepository
     }
 
     /**
+     * Persist a board. Single entry point for board writes.
+     */
+    public function save(Board $board, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->persist($board);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
+     * Remove a board.
+     */
+    public function remove(Board $board, bool $flush = true): void
+    {
+        $em = $this->getEntityManager();
+        $em->remove($board);
+
+        if ($flush) {
+            $em->flush();
+        }
+    }
+
+    /**
      * Find boards where the user is a member (via accounts).
      * Does not include boards where the user is only the owner.
      * @param Account $account
