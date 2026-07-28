@@ -7,6 +7,12 @@ use App\Repository\CardRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\LockMode;
 
+/**
+ * Deliberate exception to the "no EntityManager outside repositories" rule:
+ * moving a card spans two lanes and needs a single transaction with
+ * pessimistic locks on both, which CardRepository::save()/remove() cannot
+ * express. Not final so CardServiceTest can mock it.
+ */
 class CardMover
 {
     public function __construct(
