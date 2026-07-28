@@ -8,11 +8,11 @@
         <div class="max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-16">
 
             <!-- Main grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
 
                 <!-- Logo & Description section (spans 2 columns on lg) -->
                 <div class="lg:col-span-2">
-                    <a href="#" class="inline-flex items-center gap-2 mb-4 group">
+                    <a href="{{ path('app_home') }}" class="inline-flex items-center gap-2 mb-4 group">
                         <img src="{{ asset('assets/images/logo/logo-taskio.svg') }}"
                              alt="Taskio"
                              class="h-8 w-auto transition-transform duration-200 group-hover:scale-105">
@@ -20,20 +20,8 @@
                     <p class="text-base-content/70 text-sm leading-relaxed max-w-sm">
                         The ultra-fast task management platform.
                         Organize, collaborate and stay productive with ease.
+                        Free and open source, forever.
                     </p>
-
-                    <!-- Newsletter (optional) -->
-                    <div class="mt-6">
-                        <p class="text-sm font-medium text-base-content/90 mb-2">Stay informed</p>
-                        <div class="join w-full max-w-sm">
-                            <input type="email"
-                                   placeholder="your@email.com"
-                                   class="input input-bordered join-item flex-1 bg-base-100/50 backdrop-blur text-sm" />
-                            <button class="btn btn-primary join-item">
-                                <i class="fas fa-arrow-right"></i>
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Product -->
@@ -41,13 +29,8 @@
                     <h3 class="font-semibold text-base-content/90 mb-4">Product</h3>
                     <ul class="space-y-2">
                         <li>
-                            <a href="#features" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Features
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#integrations" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Integrations
+                            <a href="{{ path('app_solutions') }}" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                Solutions
                             </a>
                         </li>
                         <li>
@@ -56,73 +39,40 @@
                             </a>
                         </li>
                         <li>
-                            <a href="#api" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                API
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Company -->
-                <div>
-                    <h3 class="font-semibold text-base-content/90 mb-4">Company</h3>
-                    <ul class="space-y-2">
-                        <li>
-                            <a href="#about" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                About
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#careers" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Careers
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#press" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Press
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#blog" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Blog
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#partners" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Partners
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- Support -->
-                <div>
-                    <h3 class="font-semibold text-base-content/90 mb-4">Support</h3>
-                    <ul class="space-y-2">
-                        <li>
-                            <a href="#help" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Help Center
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#contact" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                            <a href="{{ path('app_contact') }}" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
                                 Contact
                             </a>
                         </li>
+                    </ul>
+                </div>
+
+                <!-- Open source project -->
+                <div>
+                    <h3 class="font-semibold text-base-content/90 mb-4">Project</h3>
+                    <ul class="space-y-2">
                         <li>
-                            <a href="#status" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Status
-                                <span class="badge badge-success badge-xs ml-2"></span>
+                            <a href="https://github.com/Baylox/taskio" target="_blank" rel="noopener" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                GitHub
                             </a>
                         </li>
                         <li>
-                            <a href="#security" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Security
+                            <a href="https://github.com/Baylox/taskio/blob/main/docs" target="_blank" rel="noopener" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                Documentation
                             </a>
                         </li>
                         <li>
-                            <a href="#changelog" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
-                                Changelog
+                            <a href="https://github.com/Baylox/taskio/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                Contributing
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Baylox/taskio/issues" target="_blank" rel="noopener" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                Report an issue
+                            </a>
+                        </li>
+                        <li>
+                            <a href="https://github.com/Baylox/taskio/blob/main/LICENSE" target="_blank" rel="noopener" class="text-base-content/70 hover:text-primary text-sm transition-colors duration-200 inline-block hover:translate-x-1 transform">
+                                MIT License
                             </a>
                         </li>
                     </ul>
@@ -134,96 +84,16 @@
 
             <!-- Bottom section -->
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-base-content/60 text-sm">
+                    © {{ "now"|date("Y") }} Taskio — released under the MIT License.
+                </p>
 
-                <!-- Copyright & legal links -->
-                <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                    <p class="text-base-content/60 text-sm">
-                        © {{ "now"|date("Y") }} Taskio. All rights reserved.
-                    </p>
-                    <div class="flex items-center gap-4 text-sm">
-                        <a href="#privacy" class="text-base-content/60 hover:text-primary transition-colors duration-200">
-                            Privacy
-                        </a>
-                        <span class="text-base-content/30">•</span>
-                        <a href="#terms" class="text-base-content/60 hover:text-primary transition-colors duration-200">
-                            Terms
-                        </a>
-                        <span class="text-base-content/30">•</span>
-                        <a href="#cookies" class="text-base-content/60 hover:text-primary transition-colors duration-200">
-                            Cookies
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Social networks -->
-                <div class="flex items-center gap-2">
-                    <a href="#twitter"
-                       class="btn btn-ghost btn-circle btn-sm transition-transform duration-200 hover:scale-110 hover:text-primary"
-                       aria-label="Twitter">
-                        <i class="fab fa-twitter"></i>
-                    </a>
-                    <a href="#linkedin"
-                       class="btn btn-ghost btn-circle btn-sm transition-transform duration-200 hover:scale-110 hover:text-primary"
-                       aria-label="LinkedIn">
-                        <i class="fab fa-linkedin-in"></i>
-                    </a>
-                    <a href="#instagram"
-                       class="btn btn-ghost btn-circle btn-sm transition-transform duration-200 hover:scale-110 hover:text-primary"
-                       aria-label="Instagram">
-                        <i class="fab fa-instagram"></i>
-                    </a>
-                    <a href="#youtube"
-                       class="btn btn-ghost btn-circle btn-sm transition-transform duration-200 hover:scale-110 hover:text-primary"
-                       aria-label="YouTube">
-                        <i class="fab fa-youtube"></i>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Theme and language selector -->
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 pt-8 border-t border-base-content/10">
-                <div class="flex items-center gap-4">
-                    <!-- Language selector -->
-                    <div class="dropdown dropdown-top">
-                        <label tabindex="0" class="btn btn-ghost btn-sm gap-2">
-                            <i class="fas fa-globe"></i>
-                            <span class="text-sm">English</span>
-                            <i class="fas fa-chevron-up text-xs"></i>
-                        </label>
-                        <ul tabindex="0" class="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-40 mb-2">
-                            <li><a class="text-sm">English</a></li>
-                            <li><a class="text-sm">French</a></li>
-                            <li><a class="text-sm">Spanish</a></li>
-                            <li><a class="text-sm">German</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Theme selector -->
-                    <div class="dropdown dropdown-top">
-                        <label tabindex="0" class="btn btn-ghost btn-sm gap-2">
-                            <i class="fas fa-palette"></i>
-                            <span class="text-sm">Theme</span>
-                            <i class="fas fa-chevron-up text-xs"></i>
-                        </label>
-                        <ul tabindex="0" class="dropdown-content menu p-2 shadow-lg bg-base-100 rounded-box w-40 mb-2">
-                            <li><a class="text-sm"><i class="fas fa-sun mr-2"></i> Light</a></li>
-                            <li><a class="text-sm"><i class="fas fa-moon mr-2"></i> Dark</a></li>
-                            <li><a class="text-sm"><i class="fas fa-desktop mr-2"></i> System</a></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Certification or trust badge -->
-                <div class="flex items-center gap-3">
-                    <div class="badge badge-outline badge-sm gap-1">
-                        <i class="fas fa-shield-alt text-success"></i>
-                        SSL Secure
-                    </div>
-                    <div class="badge badge-outline badge-sm gap-1">
-                        <i class="fas fa-check-circle text-info"></i>
-                        GDPR
-                    </div>
-                </div>
+                <a href="https://github.com/Baylox/taskio"
+                   target="_blank" rel="noopener"
+                   class="btn btn-ghost btn-circle btn-sm transition-transform duration-200 hover:scale-110 hover:text-primary"
+                   aria-label="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
             </div>
         </div>
     </div>
